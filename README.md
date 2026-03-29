@@ -61,7 +61,7 @@ tests/
 run.py
 ```
 
-## Observações
+## Observações ss
 
 - As funções de consumo e projeção estão em `app/services/market_data.py`.
 - Endpoint do bloco inicial: `/api/dashboard/primeiro-bloco`.
