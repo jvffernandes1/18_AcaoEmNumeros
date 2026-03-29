@@ -1,68 +1,85 @@
 # Ação em Números
 
-Aplicação web em Python para simulação de investimentos e análise estatística de ações.
+Uma plataforma analítica avançada desenvolvida em Python para auxílio na tomada de decisão de investidores. A ferramenta combina projeções matemáticas de rentabilidade (**Backtest**) com o acompanhamento histórico de evolução patrimonial (**Carteira**).
 
-## Entregável desta etapa
+---
 
-- Tela inicial explicando o projeto
-- Tela de cadastro (ID, senha, e-mail, nome e sobrenome)
-- Tela de login
-- Dashboard protegido por autenticação (com primeiro bloco funcional)
-- Integração com MongoDB
-- Base de integração com yfinance e Awesome API
-- Testes automatizados com pytest
-- Pipeline de CI com GitHub Actions
+## ✨ Funcionalidades Principais
 
-## Evolução implementada
+### 📉 Projeção de Investimentos (Backtest)
+Simule o crescimento do seu capital baseado em retornos históricos de ativos da B3.
+- Cálculo de **Retorno Anualizado** normalizado para 252 dias úteis.
+- Simulação de aportes mensais com visualização de montante final projetado.
+- Fórmulas matemáticas profissionais renderizadas via **KaTeX**.
 
-- Primeiro bloco do dashboard com gráfico real em Chart.js
-- Dados de preço histórico via yfinance
-- KPI de cotação via Awesome API
-- Formulário de simulação com persistência no MongoDB
-- Listagem das últimas simulações salvas por usuário
+### 💼 Gestão de Carteira (Portfolio)
+Acompanhe sua evolução patrimonial real com registro histórico.
+- Cadastro e exclusão de ativos com data de transação.
+- Gráfico dinâmico de evolução para períodos de 30 dias, 3 meses, 1 ano ou tempo total.
+- Persistência segura no **MongoDB Atlas**.
 
-## Stack
+### ♿ Acessibilidade e UX
+- Modo de **Alto Contraste** nativo para usuários com baixa visão.
+- Design responsivo e ícones modernos (Material Symbols).
+- Feedback visual de mensagens de sistema (Flashes).
 
-- Backend: Flask
-- Banco: MongoDB (PyMongo)
-- Coleta de dados: yfinance e Awesome API
-- Testes: pytest + mongomock
+---
 
-## Como rodar localmente
+## 🚀 Como Rodar Localmente
 
-1. Crie e ative o ambiente virtual Python.
-2. Instale dependências:
+1. **Clone o repositório**:
+   ```bash
+   git clone https://github.com/seu-usuario/acao-em-numeros.git
+   ```
 
+2. **Configure o Ambiente**:
+   - Crie um arquivo `.env` na raiz baseado no `.env.example`.
+   - Preencha com sua `MONGODB_URI` e `AWESOME_API_KEY`.
+
+3. **Instale e Execute**:
    ```bash
    pip install -r requirements.txt
-   ```
-
-3. Crie o arquivo `.env` a partir de `.env.example`.
-4. Execute:
-
-   ```bash
    python run.py
    ```
+   Acesse: `http://127.0.0.1:5000`
 
-5. Acesse `http://127.0.0.1:5000`.
+---
 
-## Estrutura principal
+## ☁️ Deploy no Render (Manual do Aluno)
 
-```
-app/
-  static/css/style.css
-  templates/
-  services/market_data.py
-  config.py
-  db.py
-  routes.py
-tests/
-.github/workflows/ci.yml
-run.py
-```
+A aplicação está configurada para deploy automático no **Render.com**.
 
-## Observações ss
+1. **Suba suas alterações**: Use o **GitHub Desktop** para fazer o *Push* das alterações para a branch `main`.
+2. **Conecte ao Render**:
+   - Vá para o [Dashboard do Render](https://dashboard.render.com/).
+   - Clique em **New** > **Web Service**.
+   - Conecte seu repositório do GitHub.
+3. **Configurações**:
+   - O Render lerá automaticamente o arquivo `render.yaml` (Blueprint).
+   - **IMPORTANTE**: No painel do Render, vá em **Environment** e adicione as variáveis contidas no seu `.env`.
 
-- As funções de consumo e projeção estão em `app/services/market_data.py`.
-- Endpoint do bloco inicial: `/api/dashboard/primeiro-bloco`.
-- Endpoint de persistência: `/dashboard/simulacoes`.
+---
+
+## 👥 Equipe de Desenvolvimento
+
+Projeto desenvolvido pelos alunos:
+- **Natan Da Silva Almeida** (RA: 23214130)
+- **Josias Fernandes De Aguiar Ribeiro** (RA: 1703014)
+- **Kleber Henrique Kiraly** (RA: 23220093)
+- **Guilherme Lopes Do Carmo Silva** (RA: 23212622)
+- **Sergio Norio Toda** (RA: 23214447)
+- **Monique Rinaldi Pottes** (RA: 23205314)
+- **João Victor Franco Fernandes** (RA: 23204924)
+- **Elizabeth Zaffarani** (RA: 23209684)
+
+---
+
+## 🛠️ Tecnologias
+- **Backend:** Flask (Python)
+- **Frontend:** HTML5, CSS3, JS (Vanilla), Chart.js, KaTeX
+- **Banco de Dados:** MongoDB Atlas
+- **Dados:** yfinance & Awesome API
+- **Infra:** Render + Gunicorn (WSGI)
+
+---
+*Ação em Números - Projeto Acadêmico 2026*
