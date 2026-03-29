@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Carteira | Ação em Números{% endblock %}
+
+{% block content %}
+<section class="card dashboard-hero">
+    <h1>Minha Carteira</h1>
+    <p>Acompanhe a evolução do seu patrimônio com base nas suas movimentações de ativos.</p>
+</section>
+
+<section class="card portfolio-grid">
+    <div class="portfolio-controls">
+        <h2>Adicionar Ativo</h2>
+        <form id="portfolio-form" class="form-grid">
+            <div class="field-inline">
+                <label for="ticker">Ticker (Ação B3)</label>
+                <div class="ticker-autocomplete">
+                    <input id="ticker" name="ticker" type="text" placeholder="Ex: PETR4" autocomplete="off" required>
+                    <div id="ticker-dropdown" class="ticker-dropdown" role="listbox"></div>
+                </div>
+            </div>
+
+            <div class="field-inline">
+                <label for="quantidade">Quantidade</label>
+                <input id="quantidade" name="quantidade" type="number" step="0.01" placeholder="Ex: 100" required>
+            </div>
+
+            <div class="field-inline">
+                <label for="data">Data</label>
+                <input id="data" name="data" type="date" required>
+            </div>
+
+            <div class="field-inline-button">
+                <button class="btn btn-primary" type="submit">Salvar Movimentação</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="chart-card card">
+        <div class="chart-header">
+            <h2>Evolução Patrimonial</h2>
+            <div class="chart-ranges" role="group" aria-label="Intervalo do gráfico">
+                <button class="range-btn active" data-range="30d">30 Dias</button>
+                <button class="range-btn" data-range="3m">3 Meses</button>
+                <button class="range-btn" data-range="12m">12 Meses</button>
+                <button class="range-btn" data-range="all">Tudo</button>
+            </div>
+        </div>
+        
+        <div id="portfolio-status" class="market-status">Carregando evolução...</div>
+        
+        <div class="chart-stage">
+            <canvas id="evolutionChart" aria-label="Gráfico de evolução patrimonial" role="img"></canvas>
+            <div id="chart-tooltip" class="chart-tooltip" aria-hidden="true"></div>
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Histórico de Movimentações</h2>
+    {% if transacoes %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Ticker</th>
+                        <th>Quantidade</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transacoes %}
+                        <tr>
+                            <td>{{ (t.data.strftime("%d/%m/%Y") if t.data.strftime else t.data[:10]) }}</td>
+                            <td><strong>{{ t.ticker }}</strong></td>
+                            <td class="{{ 'text-success' if t.quantidade > 0 else 'text-error' }}">
+                                {{ "%+g" | format(t.quantidade) }}
+                            </td>
+                            <td>
+                                <button class="delete-btn btn-sm" onclick="excluirTransacao('{{ t._id }}')" aria-label="Excluir movimentação">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="empty-state">Nenhuma movimentação registrada. Adicione seu primeiro ativo para ver a evolução.</p>
+    {% endif %}
+</section>
+
+<script src="{{ url_for('static', filename='js/carteira.js') }}"></script>
+{% endblock %}

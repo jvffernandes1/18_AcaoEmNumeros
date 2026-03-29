@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Cadastro | Ação em Números{% endblock %}
+
+{% block content %}
+<section class="auth-card card">
+    <h1>Criar nova conta</h1>
+    <p>Preencha os dados básicos para começar a usar a aplicação.</p>
+
+    <form method="post" class="form-grid" autocomplete="on">
+        <label for="user_id">ID de usuário</label>
+        <input id="user_id" name="user_id" type="text" required aria-required="true">
+
+        <label for="nome">Nome</label>
+        <input id="nome" name="nome" type="text" required aria-required="true">
+
+        <label for="sobrenome">Sobrenome</label>
+        <input id="sobrenome" name="sobrenome" type="text" required aria-required="true">
+
+        <label for="email">E-mail</label>
+        <input id="email" name="email" type="email" required aria-required="true">
+
+        <label for="senha">Senha</label>
+        <input id="senha" name="senha" type="password" required aria-required="true">
+
+        <button class="btn btn-primary" type="submit">Cadastrar</button>
+    </form>
+
+    <p class="auth-footnote">Já possui conta? <a href="{{ url_for('login') }}">Faça login</a>.</p>
+</section>
+{% endblock %}

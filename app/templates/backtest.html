@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}Backtest | Ação em Números{% endblock %}
+
+{% block content %}
+<section class="card dashboard-hero">
+    <h1>Backtest</h1>
+    <p>Olá, {{ usuario.nome }} {{ usuario.sobrenome }}. Este é o primeiro bloco com dados reais de mercado.</p>
+</section>
+
+<section class="card chart-card">
+    <h2>Bloco 1: preço histórico com yfinance</h2>
+    <form id="market-form" class="inline-form" aria-label="Filtros do gráfico">
+        <div class="field-inline">
+            <label for="ticker">Ticker</label>
+            <div class="ticker-autocomplete">
+                <input id="ticker" name="ticker" type="text" value="PETR4.SA" autocomplete="off" required>
+                <div id="ticker-dropdown" class="ticker-dropdown" role="listbox" aria-label="Sugestões de ticker"></div>
+            </div>
+        </div>
+
+        <div class="field-inline">
+            <label for="period">Período</label>
+            <select id="period" name="period">
+                <option value="1mo">1 mês</option>
+                <option value="3mo">3 meses</option>
+                <option value="6mo" selected>6 meses</option>
+                <option value="1y">1 ano</option>
+                <option value="2y">2 anos</option>
+                <option value="5y">5 anos</option>
+            </select>
+        </div>
+
+        <div class="field-inline field-inline-button">
+            <button class="btn btn-primary" type="submit">Atualizar gráfico</button>
+        </div>
+    </form>
+
+    <div class="market-status" id="market-status">Carregando dados...</div>
+    <div class="chart-stage">
+        <canvas id="priceChart" aria-label="Gráfico de preço histórico" role="img"></canvas>
+        <div id="chart-tooltip" class="chart-tooltip" aria-hidden="true"></div>
+    </div>
+
+    <div class="kpi-grid" id="awesome-kpis">
+        <div class="kpi-card">
+            <span class="kpi-label">Par Awesome API</span>
+            <strong id="kpi-par">USDBRL</strong>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Cotação atual</span>
+            <strong id="kpi-cotacao">-</strong>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Variação dia</span>
+            <strong id="kpi-variacao">-</strong>
+        </div>
+    </div>
+</section>
+
+<section class="card simulation-card">
+    <h2>Projeção de Investimentos</h2>
+    <p class="section-subtitle">
+        Crie cenários personalizados para entender o potencial de crescimento do seu capital de acordo com o histórico real do ativo.
+    </p>
+
+    <form class="form-grid sim-form" method="post" action="{{ url_for('salvar_simulacao') }}">
+        <div class="field-inline">
+            <label for="sim_ticker">Ticker</label>
+            <div class="ticker-autocomplete">
+                <input id="sim_ticker" name="ticker" type="text" value="PETR4.SA" autocomplete="off" required>
+                <div id="sim-ticker-dropdown" class="ticker-dropdown" role="listbox" aria-label="Sugestões de ticker"></div>
+            </div>
+            <small class="field-help">Código do ativo que será analisado e usado na projeção.</small>
+        </div>
+
+        <div class="field-inline">
+            <label for="sim_period">Janela de Cálculo</label>
+            <select id="sim_period" name="period">
+                <option value="1mo">Último mês</option>
+                <option value="3mo">Últimos 3 meses</option>
+                <option value="6mo" selected>Últimos 6 meses</option>
+                <option value="1y">Último ano</option>
+                <option value="2y">Últimos 2 anos</option>
+                <option value="5y">Últimos 5 anos</option>
+            </select>
+            <small class="field-help">Define o período histórico usado para extrair o retorno real do ativo.</small>
+        </div>
+
+        <div class="field-inline">
+            <label for="aporte_inicial">Aporte inicial (R$)</label>
+            <input id="aporte_inicial" name="aporte_inicial" type="number" min="0" step="0.01" required>
+            <small class="field-help">Valor que você investe imediatamente no início da simulação.</small>
+        </div>
+
+        <div class="field-inline">
+            <label for="aporte_mensal">Aporte mensal (R$)</label>
+            <input id="aporte_mensal" name="aporte_mensal" type="number" min="0" step="0.01" required>
+            <small class="field-help">Quantia adicionada todos os meses para projetar o crescimento.</small>
+        </div>
+
+        <div class="field-inline">
+            <label for="meses">Horizonte (meses)</label>
+            <input id="meses" name="meses" type="number" min="1" step="1" required>
+            <small class="field-help">Duração total da estratégia antes de avaliar o valor futuro.</small>
+        </div>
+
+        <div class="field-inline field-inline-button sim-submit-wrap">
+            <button class="btn btn-primary" type="submit">Salvar simulação</button>
+        </div>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Histórico de Projeções</h2>
+    {% if simulacoes %}
+        <div class="table-wrapper" role="region" aria-label="Tabela de simulações">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ticker</th>
+                        <th>Período</th>
+                        <th>Aporte inicial</th>
+                        <th>Aporte mensal</th>
+                        <th>Meses</th>
+                        <th>Retorno anualizado</th>
+                        <th>Valor projetado</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for simulacao in simulacoes %}
+                        <tr>
+                            <td>{{ simulacao.ticker }}</td>
+                            <td>{{ simulacao.period }}</td>
+                            <td>R$ {{ '%.2f'|format(simulacao.aporte_inicial) }}</td>
+                            <td>R$ {{ '%.2f'|format(simulacao.aporte_mensal) }}</td>
+                            <td>{{ simulacao.meses }}</td>
+                            <td>{{ '%.2f'|format(simulacao.retorno_anualizado * 100) }}%</td>
+                            <td>R$ {{ '%.2f'|format(simulacao.valor_projetado) }}</td>
+                            <td>
+                                <form method="post" action="/backtest/simulacoes/{{ simulacao._id }}/excluir" class="inline-delete-form">
+                                    <button class="delete-btn" type="submit" aria-label="Excluir simulação">
+                                        <span class="material-symbols-outlined">delete</span>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>Nenhuma simulação salva até o momento.</p>
+    {% endif %}
+</section>
+
+<script src="{{ url_for('static', filename='js/backtest.js') }}"></script>
+{% endblock %}

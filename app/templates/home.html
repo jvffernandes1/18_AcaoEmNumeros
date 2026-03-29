@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Início | Ação em Números{% endblock %}
+
+{% block content %}
+<section class="hero card">
+    <p class="eyebrow">Ação em Números</p>
+    <h1>Simule carteiras, acompanhe indicadores e tome decisões com mais confiança</h1>
+    <p>
+        O Ação em Números combina análise histórica, simulação de aportes e visualização de indicadores
+        para transformar dados do mercado em uma experiência clara, prática e confortável no dia a dia.
+    </p>
+    {% if session.get('usuario') %}
+        <div class="cta-row">
+            <a class="btn btn-primary" href="{{ url_for('backtest') }}">Pesquisar Ativos</a>
+            <a class="btn btn-secondary" href="{{ url_for('carteira') }}">Minha Carteira</a>
+        </div>
+    {% else %}
+        <div class="cta-row">
+            <a class="btn btn-primary" href="{{ url_for('cadastro') }}">Criar conta</a>
+            <a class="btn btn-secondary" href="{{ url_for('login') }}">Entrar</a>
+        </div>
+    {% endif %}
+</section>
+
+<section class="grid">
+    <article class="card">
+        <h2>Por que usar</h2>
+        <p>
+            Compare ativos, visualize tendências e teste estratégias com base em histórico real.
+            Tudo em uma interface simples, com foco em leitura rápida e apoio prático à decisão.
+        </p>
+    </article>
+
+    <article class="card">
+        <h2>Recursos da plataforma</h2>
+        <ul>
+            <li>Backtest de ativos com gráfico de preços e indicadores</li>
+            <li>Gestão de Carteira com evolução patrimonial histórica</li>
+            <li>Simulações de investimento com persistência no MongoDB</li>
+            <li>Integração com yfinance e Awesome API</li>
+        </ul>
+    </article>
+</section>
+{% endblock %}

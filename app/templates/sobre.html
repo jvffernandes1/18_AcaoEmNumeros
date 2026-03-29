@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Sobre | Ação em Números{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h1>Sobre a plataforma</h1>
+    <p>
+        Esta página apresenta a visão técnica do Ação em Números para documentação acadêmica,
+        incluindo arquitetura, tecnologias, fluxo de acesso, estrutura de dados e fórmulas
+        de projeção usadas no dashboard.
+    </p>
+</section>
+
+<section class="grid about-grid">
+    <article class="card">
+        <h2>Tecnologias utilizadas</h2>
+        <ul>
+            <li>Backend: Python com Flask e arquitetura por rotas e serviços</li>
+            <li>Frontend: HTML, CSS e JavaScript com componentes customizados</li>
+            <li>Banco de dados: MongoDB Atlas com PyMongo</li>
+            <li>Dados de mercado: yfinance e Awesome API</li>
+            <li>Testes: pytest com mongomock para cenários de persistência</li>
+            <li>Integração contínua: GitHub Actions</li>
+        </ul>
+    </article>
+
+    <article class="card">
+        <h2>Fluxo de acesso e segurança</h2>
+        <ul>
+            <li>Cadastro de usuário com hash de senha via Werkzeug</li>
+            <li>Login por e-mail e senha com sessão autenticada</li>
+            <li>Rotas críticas protegidas para usuários logados</li>
+            <li>Preferências de acessibilidade associadas à conta</li>
+            <li>Exclusão de simulações limitada ao próprio usuário</li>
+        </ul>
+    </article>
+</section>
+
+<section class="grid about-grid">
+    <article class="card">
+        <h2>Estrutura do banco de dados</h2>
+        <p>A aplicação usa duas coleções principais no MongoDB.</p>
+        <h3>usuarios</h3>
+        <ul>
+            <li>user_id, nome, sobrenome, email</li>
+            <li>senha_hash</li>
+            <li>alto_contraste</li>
+        </ul>
+        <h3>simulacoes</h3>
+        <ul>
+            <li>user_id, email, ticker, period</li>
+            <li>aporte_inicial, aporte_mensal, meses</li>
+            <li>retorno_anualizado, valor_projetado</li>
+            <li>criado_em</li>
+        </ul>
+    </article>
+
+    <article class="card">
+        <h2>Arquitetura do sistema</h2>
+        <ul>
+            <li>Camada de apresentação: templates Jinja e componentes UI</li>
+            <li>Camada de aplicação: rotas Flask com validação de entrada</li>
+            <li>Camada de serviço: coleta de mercado e cálculos financeiros</li>
+            <li>Camada de dados: MongoDB com índices para usuários e simulações</li>
+        </ul>
+    </article>
+</section>
+
+<section class="card">
+    <h2>Fórmulas utilizadas no dashboard</h2>
+    <p class="section-subtitle">
+        Abaixo, detalhamos a fundamentação matemática por trás das projeções de rentabilidade e valor futuro exibidas na plataforma.
+    </p>
+
+    <div class="formula-card">
+        <strong>1) Retorno anualizado</strong>
+        <p>Calculado a partir da variação percentual no período, normalizada para um ano fiscal (252 dias úteis).</p>
+        <div class="formula-display">
+            $$\text{retorno}_{\text{período}} = \frac{\text{preço}_{\text{final}}}{\text{preço}_{\text{inicial}}} - 1$$
+            $$\text{retorno}_{\text{anual}} = (1 + \text{retorno}_{\text{período}})^{\frac{252}{N}} - 1$$
+        </div>
+        <small class="field-help">Onde $N$ representa a quantidade de pontos (dias) no histórico analisado.</small>
+    </div>
+
+    <div class="formula-card">
+        <strong>2) Conversão para taxa mensal</strong>
+        <p>Utilizada para calcular o rendimento sobre os aportes feitos mês a mês.</p>
+        <div class="formula-display">
+            $$i_{\text{mensal}} = (1 + \text{retorno}_{\text{anual}})^{\frac{1}{12}} - 1$$
+        </div>
+    </div>
+
+    <div class="formula-card">
+        <strong>3) Projeção do valor futuro (VF)</strong>
+        <p>Composto pela valorização do aporte inicial somada à série de pagamentos mensais (anuidade).</p>
+        <div class="formula-display">
+            $$VF_{\text{inicial}} = \text{aporte}_{\text{inicial}} \times (1 + i_{\text{mensal}})^{\text{meses}}$$
+            $$VF_{\text{aportes}} = \text{aporte}_{\text{mensal}} \times \left( \frac{(1 + i_{\text{mensal}})^{\text{meses}} - 1}{i_{\text{mensal}}} \right)$$
+            $$VF_{\text{total}} = VF_{\text{inicial}} + VF_{\text{aportes}}$$
+        </div>
+    </div>
+
+    <div class="formula-card">
+        <strong>Caso especial (Taxa Zero)</strong>
+        <p>Se a variação do ativo for nula, a projeção assume o valor nominal investido.</p>
+        <div class="formula-display">
+            $$VF_{\text{total}} = \text{aporte}_{\text{inicial}} + (\text{aporte}_{\text{mensal}} \times \text{meses})$$
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Equipe de Desenvolvimento</h2>
+    <div class="grid contact-grid">
+        <article class="kpi-card">
+            <strong>Natan Da Silva Almeida</strong>
+            <span class="kpi-label">RA: 23214130</span>
+        </article>
+        <article class="kpi-card">
+            <strong>Josias Fernandes De Aguiar Ribeiro</strong>
+            <span class="kpi-label">RA: 1703014</span>
+        </article>
+        <article class="kpi-card">
+            <strong>Kleber Henrique Kiraly</strong>
+            <span class="kpi-label">RA: 23220093</span>
+        </article>
+        <article class="kpi-card">
+            <strong>Guilherme Lopes Do Carmo Silva</strong>
+            <span class="kpi-label">RA: 23212622</span>
+        </article>
+        <article class="kpi-card">
+            <strong>Sergio Norio Toda</strong>
+            <span class="kpi-label">RA: 23214447</span>
+        </article>
+        <article class="kpi-card">
+            <strong>Monique Rinaldi Pottes</strong>
+            <span class="kpi-label">RA: 23205314</span>
+        </article>
+        <article class="kpi-card">
+            <strong>João Victor Franco Fernandes</strong>
+            <span class="kpi-label">RA: 23204924</span>
+        </article>
+        <article class="kpi-card">
+            <strong>Elizabeth Zaffarani</strong>
+            <span class="kpi-label">RA: 23209684</span>
+        </article>
+    </div>
+</section>
+{% endblock %}
