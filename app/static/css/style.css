@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     color-scheme: light;
     --bg: #f5f7fb;
     --text: #1a2440;
@@ -78,7 +78,14 @@ nav {
     white-space: nowrap;
 }
 
-.contrast-toggle {
+.accessibility-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.contrast-toggle,
+.font-size-btn {
     width: 34px;
     height: 34px;
     border-radius: 999px;
@@ -89,20 +96,37 @@ nav {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.contrast-toggle:hover,
+.font-size-btn:hover {
+    background: #f0f4ff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(39, 93, 255, 0.12);
 }
 
 .contrast-toggle svg,
-.contrast-toggle .material-symbols-outlined {
+.contrast-toggle .material-symbols-outlined,
+.font-size-btn .material-symbols-outlined {
     width: 18px;
     height: 18px;
     font-size: 18px;
     fill: currentColor;
 }
 
+.font-size-btn .material-symbols-outlined {
+    font-size: 16px;
+}
+
 .contrast-toggle.active {
     background: var(--brand);
     color: #fff;
     border-color: var(--brand);
+}
+
+.contrast-toggle.active:hover {
+    background: var(--brand-dark);
 }
 
 nav a {
@@ -466,9 +490,15 @@ select {
     color: var(--error-text);
 }
 
-#priceChart {
+#priceChart,
+#evolutionChart {
     width: 100%;
-    height: 500px;
+    height: 420px;
+}
+
+#drawdownChart {
+    width: 100%;
+    height: 180px;
 }
 
 .chart-stage {
@@ -478,6 +508,35 @@ select {
     border-radius: 14px;
     padding: 12px;
     background: linear-gradient(180deg, #f9fbff 0%, #f0f5ff 100%);
+}
+
+.chart-stage-drawdown {
+    margin-top: 16px;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, #fff5f5 0%, #fffbfc 100%);
+    border-color: #fbd5d5;
+}
+
+.chart-legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-color {
+    display: inline-block;
+    width: 12px;
+    height: 4px;
+    border-radius: 2px;
 }
 
 .chart-tooltip {
@@ -639,12 +698,47 @@ body[data-theme="high"] .btn-secondary,
 body[data-theme="high"] input,
 body[data-theme="high"] select,
 body[data-theme="high"] .contrast-toggle,
+body[data-theme="high"] .font-size-btn,
 body[data-theme="high"] .ticker-dropdown,
 body[data-theme="high"] .kpi-card,
 body[data-theme="high"] .chart-stage {
     background: #111b2a;
     color: var(--text);
     border-color: var(--border);
+}
+
+.chart-stage-drawdown {
+    margin-top: 16px;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, #fff5f5 0%, #fffbfc 100%);
+    border-color: #fbd5d5;
+}
+
+.chart-legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-color {
+    display: inline-block;
+    width: 12px;
+    height: 4px;
+    border-radius: 2px;
+}
+
+body[data-theme="high"] .font-size-btn:hover,
+body[data-theme="high"] .contrast-toggle:hover {
+    background: #1a2a40;
 }
 
 body[data-theme="high"] th {
@@ -719,3 +813,6 @@ body[data-theme="high"] .formula-card {
     background: #0f172a;
     border-color: var(--border);
 }
+
+
+

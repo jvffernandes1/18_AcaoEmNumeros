@@ -40,6 +40,16 @@
     <div class="chart-stage">
         <canvas id="priceChart" aria-label="Gráfico de preço histórico" role="img"></canvas>
         <div id="chart-tooltip" class="chart-tooltip" aria-hidden="true"></div>
+        <div class="chart-legend" id="chart-legend">
+            <span class="legend-item"><span class="legend-color" style="background:#275dff"></span>Preço</span>
+            <span class="legend-item"><span class="legend-color" style="background:#f59e0b"></span>MM 20</span>
+            <span class="legend-item"><span class="legend-color" style="background:#8b5cf6"></span>MM 50</span>
+        </div>
+    </div>
+
+    <div class="chart-stage chart-stage-drawdown">
+        <canvas id="drawdownChart" aria-label="Gráfico de drawdown" role="img"></canvas>
+        <div id="dd-tooltip" class="chart-tooltip" aria-hidden="true"></div>
     </div>
 
     <div class="kpi-grid" id="awesome-kpis">
@@ -55,13 +65,26 @@
             <span class="kpi-label">Variação dia</span>
             <strong id="kpi-variacao">-</strong>
         </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Volatilidade (anual)</span>
+            <strong id="kpi-volatilidade">-</strong>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Max Drawdown</span>
+            <strong id="kpi-maxdd">-</strong>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Sharpe Ratio</span>
+            <strong id="kpi-sharpe">-</strong>
+        </div>
     </div>
 </section>
 
 <section class="card simulation-card">
     <h2>Projeção de Investimentos</h2>
     <p class="section-subtitle">
-        Crie cenários personalizados para entender o potencial de crescimento do seu capital de acordo com o histórico real do ativo.
+        Crie cenários personalizados para entender o potencial de crescimento do seu capital de acordo com o histórico
+        real do ativo.
     </p>
 
     <form class="form-grid sim-form" method="post" action="{{ url_for('salvar_simulacao') }}">
@@ -69,7 +92,8 @@
             <label for="sim_ticker">Ticker</label>
             <div class="ticker-autocomplete">
                 <input id="sim_ticker" name="ticker" type="text" value="PETR4.SA" autocomplete="off" required>
-                <div id="sim-ticker-dropdown" class="ticker-dropdown" role="listbox" aria-label="Sugestões de ticker"></div>
+                <div id="sim-ticker-dropdown" class="ticker-dropdown" role="listbox" aria-label="Sugestões de ticker">
+                </div>
             </div>
             <small class="field-help">Código do ativo que será analisado e usado na projeção.</small>
         </div>
@@ -114,44 +138,45 @@
 <section class="card">
     <h2>Histórico de Projeções</h2>
     {% if simulacoes %}
-        <div class="table-wrapper" role="region" aria-label="Tabela de simulações">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Ticker</th>
-                        <th>Período</th>
-                        <th>Aporte inicial</th>
-                        <th>Aporte mensal</th>
-                        <th>Meses</th>
-                        <th>Retorno anualizado</th>
-                        <th>Valor projetado</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for simulacao in simulacoes %}
-                        <tr>
-                            <td>{{ simulacao.ticker }}</td>
-                            <td>{{ simulacao.period }}</td>
-                            <td>R$ {{ '%.2f'|format(simulacao.aporte_inicial) }}</td>
-                            <td>R$ {{ '%.2f'|format(simulacao.aporte_mensal) }}</td>
-                            <td>{{ simulacao.meses }}</td>
-                            <td>{{ '%.2f'|format(simulacao.retorno_anualizado * 100) }}%</td>
-                            <td>R$ {{ '%.2f'|format(simulacao.valor_projetado) }}</td>
-                            <td>
-                                <form method="post" action="/backtest/simulacoes/{{ simulacao._id }}/excluir" class="inline-delete-form">
-                                    <button class="delete-btn" type="submit" aria-label="Excluir simulação">
-                                        <span class="material-symbols-outlined">delete</span>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="table-wrapper" role="region" aria-label="Tabela de simulações">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ticker</th>
+                    <th>Período</th>
+                    <th>Aporte inicial</th>
+                    <th>Aporte mensal</th>
+                    <th>Meses</th>
+                    <th>Retorno anualizado</th>
+                    <th>Valor projetado</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for simulacao in simulacoes %}
+                <tr>
+                    <td>{{ simulacao.ticker }}</td>
+                    <td>{{ simulacao.period }}</td>
+                    <td>R$ {{ '%.2f'|format(simulacao.aporte_inicial) }}</td>
+                    <td>R$ {{ '%.2f'|format(simulacao.aporte_mensal) }}</td>
+                    <td>{{ simulacao.meses }}</td>
+                    <td>{{ '%.2f'|format(simulacao.retorno_anualizado * 100) }}%</td>
+                    <td>R$ {{ '%.2f'|format(simulacao.valor_projetado) }}</td>
+                    <td>
+                        <form method="post" action="/backtest/simulacoes/{{ simulacao._id }}/excluir"
+                            class="inline-delete-form">
+                            <button class="delete-btn" type="submit" aria-label="Excluir simulação">
+                                <span class="material-symbols-outlined">delete</span>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-        <p>Nenhuma simulação salva até o momento.</p>
+    <p>Nenhuma simulação salva até o momento.</p>
     {% endif %}
 </section>
 

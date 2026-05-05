@@ -19,9 +19,17 @@
         <div class="container topbar-content">
             <a class="brand" href="{{ url_for('home') }}">Ação em Números</a>
             <nav aria-label="Navegação principal">
-                <button id="contrast-toggle" class="contrast-toggle" type="button" aria-label="Alternar alto contraste" aria-pressed="false">
-                    <span class="material-symbols-outlined">contrast</span>
-                </button>
+                <div class="accessibility-group">
+                    <button id="font-decrease" class="font-size-btn" type="button" aria-label="Diminuir fonte" title="Diminuir fonte">
+                        <span class="material-symbols-outlined">text_decrease</span>
+                    </button>
+                    <button id="font-increase" class="font-size-btn" type="button" aria-label="Aumentar fonte" title="Aumentar fonte">
+                        <span class="material-symbols-outlined">text_increase</span>
+                    </button>
+                    <button id="contrast-toggle" class="contrast-toggle" type="button" aria-label="Alternar alto contraste" aria-pressed="false">
+                        <span class="material-symbols-outlined">contrast</span>
+                    </button>
+                </div>
                 <a class="nav-link" href="{{ url_for('home') }}">
                     <span class="material-symbols-outlined">home</span>
                     <span>Início</span>

@@ -211,12 +211,15 @@ def register_routes(app):
         except Exception:
             aviso = "Não foi possível carregar a cotação da Awesome API no momento."
 
+        indicadores = market_data.calcular_indicadores_tecnicos(historico)
+
         return jsonify(
             {
                 "ticker": ticker,
                 "period": period,
                 "historico": historico,
                 "awesome": cotacoes_awesome,
+                "indicadores": indicadores,
                 "aviso": aviso,
             }
         )

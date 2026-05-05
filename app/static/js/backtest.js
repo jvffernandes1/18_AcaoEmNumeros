@@ -1,6 +1,7 @@
 (function () {
     const form = document.getElementById("market-form");
     const canvas = document.getElementById("priceChart");
+    const ddCanvas = document.getElementById("drawdownChart");
     const statusBox = document.getElementById("market-status");
 
     if (!form || !canvas || !statusBox) {
@@ -15,8 +16,13 @@
     const kpiPar = document.getElementById("kpi-par");
     const kpiCotacao = document.getElementById("kpi-cotacao");
     const kpiVariacao = document.getElementById("kpi-variacao");
+    const kpiVolatilidade = document.getElementById("kpi-volatilidade");
+    const kpiMaxDd = document.getElementById("kpi-maxdd");
+    const kpiSharpe = document.getElementById("kpi-sharpe");
     const tooltip = document.getElementById("chart-tooltip");
+    const ddTooltip = document.getElementById("dd-tooltip");
     const chartStage = canvas.closest(".chart-stage");
+    const ddChartStage = ddCanvas ? ddCanvas.closest(".chart-stage-drawdown") : null;
 
     let chartState = null;
     const tickerCache = new Map();
@@ -196,7 +202,7 @@
         });
     }
 
-    function drawLineChart(labels, values, title, hoverIndex) {
+    function drawLineChart(labels, values, mm20, mm50, title, hoverIndex) {
         const ctx = canvas.getContext("2d");
         const width = canvas.clientWidth || 700;
         const height = canvas.clientHeight || 420;
@@ -213,14 +219,42 @@
         const chartWidth = width - padding.left - padding.right;
         const chartHeight = height - padding.top - padding.bottom;
 
-        const min = Math.min(...values);
-        const max = Math.max(...values);
+        
+        const minVal = Math.min(...values.filter(v => v !== null));
+        const maxVal = Math.max(...values.filter(v => v !== null));
+        // Recalculate min/max considering MMs
+        let overallMin = minVal;
+        let overallMax = maxVal;
+        if(mm20 && mm20.length) {
+            const mm20Vals = mm20.filter(v => v !== null);
+            if(mm20Vals.length) {
+                overallMin = Math.min(overallMin, ...mm20Vals);
+                overallMax = Math.max(overallMax, ...mm20Vals);
+            }
+        }
+        if(mm50 && mm50.length) {
+            const mm50Vals = mm50.filter(v => v !== null);
+            if(mm50Vals.length) {
+                overallMin = Math.min(overallMin, ...mm50Vals);
+                overallMax = Math.max(overallMax, ...mm50Vals);
+            }
+        }
+        
+        const min = overallMin;
+        const max = overallMax;
         const range = max - min || 1;
-        const points = values.map((value, index) => {
-            const x = padding.left + (index / Math.max(values.length - 1, 1)) * chartWidth;
-            const y = padding.top + ((max - value) / range) * chartHeight;
-            return { x, y, value, label: labels[index] || "" };
-        });
+
+        
+        const mapPoint = (val, idx) => {
+            if (val === null || val === undefined) return null;
+            const x = padding.left + (idx / Math.max(labels.length - 1, 1)) * chartWidth;
+            const y = padding.top + ((max - val) / range) * chartHeight;
+            return { x, y, value: val, label: labels[idx] || "" };
+        };
+        const points = values.map(mapPoint);
+        const mm20Points = (mm20 || []).map(mapPoint);
+        const mm50Points = (mm50 || []).map(mapPoint);
+
 
         ctx.fillStyle = "#1a2440";
         ctx.font = "600 14px Inter, Arial, sans-serif";
@@ -262,7 +296,36 @@
                 ctx.lineTo(point.x, point.y);
             }
         });
+
         ctx.stroke();
+
+        // Draw MM50 (purple)
+        if (mm50Points && mm50Points.some(p => p !== null)) {
+            ctx.strokeStyle = "#8b5cf6";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            let started = false;
+            mm50Points.forEach((point) => {
+                if (point === null) return;
+                if (!started) { ctx.moveTo(point.x, point.y); started = true; }
+                else { ctx.lineTo(point.x, point.y); }
+            });
+            ctx.stroke();
+        }
+
+        // Draw MM20 (orange)
+        if (mm20Points && mm20Points.some(p => p !== null)) {
+            ctx.strokeStyle = "#f59e0b";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            let started = false;
+            mm20Points.forEach((point) => {
+                if (point === null) return;
+                if (!started) { ctx.moveTo(point.x, point.y); started = true; }
+                else { ctx.lineTo(point.x, point.y); }
+            });
+            ctx.stroke();
+        }
 
         ctx.fillStyle = "#5f6b8a";
         ctx.font = "12px Inter, Arial, sans-serif";
@@ -299,10 +362,95 @@
             points,
             labels,
             values,
+            mm20,
+            mm50,
+            drawdown: chartState ? chartState.drawdown : []
         };
     }
 
-    function pickNearestPoint(mouseX) {
+    
+    function drawDrawdownChart(labels, drawdownValues, hoverIndex) {
+        if (!ddCanvas) return;
+        const ctx = ddCanvas.getContext("2d");
+        const width = ddCanvas.clientWidth || 700;
+        const height = ddCanvas.clientHeight || 180;
+        ddCanvas.width = width;
+        ddCanvas.height = height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        if (!drawdownValues || !drawdownValues.length) return;
+
+        const padding = { top: 20, right: 24, bottom: 24, left: 52 };
+        const chartWidth = width - padding.left - padding.right;
+        const chartHeight = height - padding.top - padding.bottom;
+
+        const min = Math.min(...drawdownValues);
+        const max = 0; // Drawdown is always <= 0
+        const range = Math.max(Math.abs(min), 1);
+        
+        const points = drawdownValues.map((value, index) => {
+            const x = padding.left + (index / Math.max(labels.length - 1, 1)) * chartWidth;
+            const y = padding.top + ((max - value) / range) * chartHeight; // inverted because min is negative
+            return { x, y, value, label: labels[index] || "" };
+        });
+
+        ctx.fillStyle = "#1a2440";
+        ctx.font = "600 13px Inter, Arial, sans-serif";
+        ctx.fillText("Drawdown %", padding.left, 14);
+
+        ctx.strokeStyle = "#ffe4e6";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, padding.top);
+        ctx.lineTo(width - padding.right, padding.top); // Line at 0%
+        ctx.stroke();
+
+        const gradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
+        gradient.addColorStop(0, "rgba(244, 63, 94, 0.05)");
+        gradient.addColorStop(1, "rgba(244, 63, 94, 0.4)");
+
+        ctx.beginPath();
+        points.forEach((point, index) => {
+            if (index === 0) ctx.moveTo(point.x, point.y);
+            else ctx.lineTo(point.x, point.y);
+        });
+        ctx.lineTo(points[points.length - 1].x, padding.top);
+        ctx.lineTo(points[0].x, padding.top);
+        ctx.closePath();
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.strokeStyle = "#f43f5e";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        points.forEach((point, index) => {
+            if (index === 0) ctx.moveTo(point.x, point.y);
+            else ctx.lineTo(point.x, point.y);
+        });
+        ctx.stroke();
+
+        ctx.fillStyle = "#881337";
+        ctx.font = "11px Inter, Arial, sans-serif";
+        ctx.fillText(`Min: ${min.toFixed(2)}%`, width - padding.right - 80, height - 8);
+
+        if (typeof hoverIndex === "number" && points[hoverIndex]) {
+            const point = points[hoverIndex];
+            ctx.strokeStyle = "rgba(244, 63, 94, 0.35)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(point.x, padding.top);
+            ctx.lineTo(point.x, height - padding.bottom);
+            ctx.stroke();
+
+            ctx.fillStyle = "#f43f5e";
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+function pickNearestPoint(mouseX) {
         if (!chartState || !chartState.points.length) {
             return null;
         }
@@ -326,6 +474,10 @@
         }
         tooltip.classList.remove("visible");
         tooltip.setAttribute("aria-hidden", "true");
+        if (ddTooltip) {
+            ddTooltip.classList.remove("visible");
+            ddTooltip.setAttribute("aria-hidden", "true");
+        }
     }
 
     function updateTooltip(index) {
@@ -334,8 +486,16 @@
             return;
         }
 
+        
         const point = chartState.points[index];
-        tooltip.innerHTML = `<strong>${point.label}</strong><br>R$ ${Number(point.value).toFixed(2)}`;
+        const val20 = chartState.mm20[index];
+        const val50 = chartState.mm50[index];
+        
+        let html = `<strong>${point.label}</strong><br>R$ ${Number(point.value).toFixed(2)}`;
+        if (val20 !== null) html += `<br><span style="color:#f59e0b">MM20:</span> R$ ${Number(val20).toFixed(2)}`;
+        if (val50 !== null) html += `<br><span style="color:#8b5cf6">MM50:</span> R$ ${Number(val50).toFixed(2)}`;
+        tooltip.innerHTML = html;
+
 
         const stageWidth = chartStage.clientWidth;
         const stageHeight = chartStage.clientHeight;
@@ -356,8 +516,40 @@
 
         tooltip.style.left = `${left}px`;
         tooltip.style.top = `${top}px`;
+        
         tooltip.classList.add("visible");
         tooltip.setAttribute("aria-hidden", "false");
+
+        if (ddTooltip && chartState.drawdown && ddChartStage) {
+            const ddVal = chartState.drawdown[index];
+            ddTooltip.innerHTML = `<strong>${point.label}</strong><br>${Number(ddVal).toFixed(2)}%`;
+            
+            const stageWidthDD = ddChartStage.clientWidth;
+            const stageHeightDD = ddChartStage.clientHeight;
+            // map y for drawdown
+            const padding = { top: 20, right: 24, bottom: 24, left: 52 };
+            const chartHeight = ddCanvas.clientHeight - padding.top - padding.bottom;
+            const min = Math.min(...chartState.drawdown);
+            const max = 0;
+            const range = Math.max(Math.abs(min), 1);
+            const y = padding.top + ((max - ddVal) / range) * chartHeight;
+            
+            const baseXDD = ddCanvas.offsetLeft + point.x;
+            const baseYDD = ddCanvas.offsetTop + y;
+            const ttWidth = ddTooltip.offsetWidth;
+            const ttHeight = ddTooltip.offsetHeight;
+            
+            let leftDD = baseXDD - (ttWidth / 2);
+            let topDD = baseYDD - ttHeight - 14;
+            leftDD = Math.max(8, Math.min(leftDD, stageWidthDD - ttWidth - 8));
+            if (topDD < 8) topDD = Math.min(baseYDD + 14, stageHeightDD - ttHeight - 8);
+            
+            ddTooltip.style.left = `${leftDD}px`;
+            ddTooltip.style.top = `${topDD}px`;
+            ddTooltip.classList.add("visible");
+            ddTooltip.setAttribute("aria-hidden", "false");
+        }
+
     }
 
     function findAwesomeEntry(dadosAwesome) {
@@ -390,7 +582,10 @@
         const labels = historico.map((item) => item.data);
         const prices = historico.map((item) => item.fechamento);
 
-        drawLineChart(labels, prices, `${payload.ticker} (fechamento)`);
+        const indicadores = payload.indicadores || {};
+        chartState = { labels, values: prices, mm20: indicadores.mm20 || [], mm50: indicadores.mm50 || [], drawdown: indicadores.drawdown || [] };
+        drawLineChart(labels, prices, chartState.mm20, chartState.mm50, `${payload.ticker} (fechamento)`);
+        drawDrawdownChart(labels, chartState.drawdown);
         hideTooltip();
 
         const entry = findAwesomeEntry((payload.awesome || {}).dados || {});
@@ -405,6 +600,17 @@
             kpiPar.textContent = "USDBRL";
             kpiCotacao.textContent = "-";
             kpiVariacao.textContent = "-";
+        }
+
+        
+        if (payload.indicadores) {
+            if(kpiVolatilidade) kpiVolatilidade.textContent = `${Number(payload.indicadores.volatilidade_anual).toFixed(2)}%`;
+            if(kpiMaxDd) kpiMaxDd.textContent = `${Number(payload.indicadores.max_drawdown).toFixed(2)}%`;
+            if(kpiSharpe) kpiSharpe.textContent = Number(payload.indicadores.sharpe_ratio).toFixed(2);
+        } else {
+            if(kpiVolatilidade) kpiVolatilidade.textContent = "-";
+            if(kpiMaxDd) kpiMaxDd.textContent = "-";
+            if(kpiSharpe) kpiSharpe.textContent = "-";
         }
 
         if (payload.aviso) {
@@ -434,30 +640,53 @@
         });
     }
 
-    canvas.addEventListener("mousemove", function (event) {
-        if (!chartState) {
-            return;
-        }
-
-        const rect = canvas.getBoundingClientRect();
+    
+    function handleHover(event, canvasElem) {
+        if (!chartState) return;
+        const rect = canvasElem.getBoundingClientRect();
         const mouseX = event.clientX - rect.left;
         const hoverIndex = pickNearestPoint(mouseX);
-        if (hoverIndex === null) {
-            return;
-        }
+        if (hoverIndex === null) return;
 
-        drawLineChart(chartState.labels, chartState.values, chartState.title, hoverIndex);
+        drawLineChart(chartState.labels, chartState.values, chartState.mm20, chartState.mm50, chartState.title || "Preço", hoverIndex);
+        drawDrawdownChart(chartState.labels, chartState.drawdown, hoverIndex);
         updateTooltip(hoverIndex);
-    });
-
-    canvas.addEventListener("mouseleave", function () {
-        if (!chartState) {
-            return;
-        }
-
-        drawLineChart(chartState.labels, chartState.values, chartState.title);
+    }
+    
+    function handleLeave() {
+        if (!chartState) return;
+        drawLineChart(chartState.labels, chartState.values, chartState.mm20, chartState.mm50, chartState.title || "Preço");
+        drawDrawdownChart(chartState.labels, chartState.drawdown);
         hideTooltip();
-    });
+    }
+
+    
+    function handleHover(event, canvasElem) {
+        if (!chartState) return;
+        const rect = canvasElem.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const hoverIndex = pickNearestPoint(mouseX);
+        if (hoverIndex === null) return;
+
+        drawLineChart(chartState.labels, chartState.values, chartState.mm20, chartState.mm50, chartState.title || "Preço", hoverIndex);
+        drawDrawdownChart(chartState.labels, chartState.drawdown, hoverIndex);
+        updateTooltip(hoverIndex);
+    }
+    
+    function handleLeave() {
+        if (!chartState) return;
+        drawLineChart(chartState.labels, chartState.values, chartState.mm20, chartState.mm50, chartState.title || "Preço");
+        drawDrawdownChart(chartState.labels, chartState.drawdown);
+        hideTooltip();
+    }
+
+    canvas.addEventListener("mousemove", (e) => handleHover(e, canvas));
+    canvas.addEventListener("mouseleave", handleLeave);
+    
+    if (ddCanvas) {
+        ddCanvas.addEventListener("mousemove", (e) => handleHover(e, ddCanvas));
+        ddCanvas.addEventListener("mouseleave", handleLeave);
+    }
 
     carregarDados().catch((error) => {
         setStatus(error.message, true);

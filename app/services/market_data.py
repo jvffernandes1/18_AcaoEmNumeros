@@ -1,4 +1,4 @@
-﻿from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 
@@ -197,66 +197,190 @@ def projetar_valor_futuro(
     acumulado_inicial = aporte_inicial * ((1 + taxa_mensal) ** meses)
     acumulado_aportes = aporte_mensal * ((((1 + taxa_mensal) ** meses) - 1) / taxa_mensal)
     return float(acumulado_inicial + acumulado_aportes)
+
+def calcular_indicadores_tecnicos(historico: list[dict]) -> dict:
+    """Calcula indicadores técnicos a partir do histórico de preços.
+
+    Retorna médias móveis (20/50), drawdown, volatilidade anualizada e Sharpe.
+    """
+    resultado: dict = {
+        "mm20": [],
+        "mm50": [],
+        "drawdown": [],
+        "max_drawdown": 0.0,
+        "volatilidade_anual": 0.0,
+        "sharpe_ratio": 0.0,
+    }
+
+    if len(historico) < 2:
+        resultado["mm20"] = [None] * len(historico)
+        resultado["mm50"] = [None] * len(historico)
+        resultado["drawdown"] = [0.0] * len(historico)
+        return resultado
+
+    fechamentos = [h["fechamento"] for h in historico]
+    n = len(fechamentos)
+
+    # ── Médias Móveis ───────────────────────────────────────────
+    mm20 = []
+    mm50 = []
+    for i in range(n):
+        if i >= 19:
+            mm20.append(round(sum(fechamentos[i - 19 : i + 1]) / 20, 4))
+        else:
+            mm20.append(None)
+        if i >= 49:
+            mm50.append(round(sum(fechamentos[i - 49 : i + 1]) / 50, 4))
+        else:
+            mm50.append(None)
+
+    resultado["mm20"] = mm20
+    resultado["mm50"] = mm50
+
+    # ── Drawdown ────────────────────────────────────────────────
+    pico = fechamentos[0]
+    drawdown_serie = []
+    max_dd = 0.0
+    for preco in fechamentos:
+        if preco > pico:
+            pico = preco
+        dd = ((preco - pico) / pico) * 100 if pico > 0 else 0.0
+        drawdown_serie.append(round(dd, 4))
+        if dd < max_dd:
+            max_dd = dd
+
+    resultado["drawdown"] = drawdown_serie
+    resultado["max_drawdown"] = round(max_dd, 2)
+
+    # ── Retornos diários ────────────────────────────────────────
+    retornos = []
+    for i in range(1, n):
+        if fechamentos[i - 1] > 0:
+            retornos.append((fechamentos[i] / fechamentos[i - 1]) - 1)
+
+    if not retornos:
+        return resultado
+
+    # ── Volatilidade anualizada ─────────────────────────────────
+    media_retorno = sum(retornos) / len(retornos)
+    variancia = sum((r - media_retorno) ** 2 for r in retornos) / len(retornos)
+    desvio_diario = variancia**0.5
+    vol_anual = desvio_diario * (252**0.5) * 100  # em %
+    resultado["volatilidade_anual"] = round(vol_anual, 2)
+
+    # ── Sharpe Ratio (Selic ~13.25% a.a. como taxa livre de risco) ──
+    SELIC_ANUAL = 0.1325
+    retorno_total = (fechamentos[-1] / fechamentos[0]) - 1
+    dias_uteis = len(retornos)
+    retorno_anualizado = ((1 + retorno_total) ** (252 / max(dias_uteis, 1))) - 1
+    excesso = retorno_anualizado - SELIC_ANUAL
+    vol_decimal = vol_anual / 100
+
+    if vol_decimal > 1e-9:
+        resultado["sharpe_ratio"] = round(excesso / vol_decimal, 2)
+    else:
+        resultado["sharpe_ratio"] = 0.0
+
+    return resultado
+
+
 def obter_evolucao_patrimonial(transacoes: list[dict], period_days: int) -> list[dict]:
     if not transacoes:
         return []
 
-    if period_days > 0:
-        data_inicio = datetime.now() - timedelta(days=period_days)
-    else:
-        datas = [t["data"] for t in transacoes]
-        datas_dt = []
-        for d in datas:
-            if isinstance(d, datetime):
-                datas_dt.append(d)
-            else:
-                datas_dt.append(datetime.fromisoformat(str(d).replace("Z", "")))
-        data_inicio = min(datas_dt)
+    # Parse all transaction dates upfront
+    parsed_transacoes = []
+    for t in transacoes:
+        t_data = t["data"]
+        if not isinstance(t_data, datetime):
+            t_data = datetime.fromisoformat(str(t_data).replace("Z", ""))
+        parsed_transacoes.append({
+            "ticker": t["ticker"],
+            "quantidade": t["quantidade"],
+            "data": t_data.replace(tzinfo=None),
+        })
 
-    hoje = datetime.now()
-    range_datas = pd.date_range(start=data_inicio, end=hoje, freq='B')
+    if period_days > 0:
+        data_inicio = (datetime.now() - timedelta(days=period_days)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+    else:
+        data_inicio = min(t["data"] for t in parsed_transacoes).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+
+    hoje = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    range_datas = pd.date_range(start=data_inicio, end=hoje, freq="B")
     if range_datas.empty:
         return []
 
-    tickers = list(set(t["ticker"] for t in transacoes))
-    start_str = data_inicio.strftime("%Y-%m-%d")
+    tickers = list(set(t["ticker"] for t in parsed_transacoes))
+
+    # Download prices starting a few days earlier to allow forward-fill
+    download_start = data_inicio - timedelta(days=10)
+    # Also need prices from the earliest transaction date for portfolio composition
+    earliest_tx = min(t["data"] for t in parsed_transacoes)
+    if earliest_tx < download_start:
+        download_start = earliest_tx - timedelta(days=5)
+
+    start_str = download_start.strftime("%Y-%m-%d")
     try:
-        data_precos = yf.download(tickers, start=start_str, progress=False)["Close"]
+        raw = yf.download(tickers, start=start_str, progress=False)
+        if raw.empty:
+            return []
+
+        # Handle yfinance MultiIndex columns (Price, Ticker)
+        if isinstance(raw.columns, pd.MultiIndex):
+            data_precos = raw["Close"]
+        else:
+            data_precos = raw[["Close"]] if "Close" in raw.columns else raw
+            if "Close" in raw.columns and len(tickers) == 1:
+                data_precos = raw[["Close"]].copy()
+                data_precos.columns = tickers
+
+        # Ensure it's a DataFrame
         if isinstance(data_precos, pd.Series):
-            data_precos = data_precos.to_frame()
-            data_precos.columns = tickers
+            data_precos = data_precos.to_frame(name=tickers[0])
+
+        # Flatten MultiIndex columns if still present
+        if isinstance(data_precos.columns, pd.MultiIndex):
+            data_precos.columns = [
+                col[-1] if isinstance(col, tuple) else col
+                for col in data_precos.columns
+            ]
+
+        # Remove timezone from index for consistent comparison
+        if data_precos.index.tz is not None:
+            data_precos.index = data_precos.index.tz_localize(None)
+
     except Exception:
         return []
 
-    data_precos = data_precos.reindex(range_datas).ffill().fillna(0)
+    # Reindex to our business day range and fill gaps
+    data_precos = data_precos.reindex(range_datas)
+    data_precos = data_precos.ffill().bfill()
+
     evolucao = []
     for data in range_datas:
+        # Build portfolio composition from all transactions up to this date
+        composicao: dict[str, float] = {}
+        for t in parsed_transacoes:
+            if t["data"] <= data.to_pydatetime().replace(tzinfo=None):
+                tick = t["ticker"]
+                composicao[tick] = composicao.get(tick, 0) + t["quantidade"]
+
         total_dia = 0.0
-        transacoes_ate_hoje = []
-        for t in transacoes:
-            t_data = t["data"]
-            if not isinstance(t_data, datetime):
-                t_data = datetime.fromisoformat(str(t_data).replace("Z", ""))
-            if t_data.replace(tzinfo=None) <= data.to_pydatetime().replace(tzinfo=None):
-                transacoes_ate_hoje.append(t)
-        
-        composicao = {}
-        for t in transacoes_ate_hoje:
-            tick = t["ticker"]
-            composicao[tick] = composicao.get(tick, 0) + t["quantidade"]
-        
         for tick, qtd in composicao.items():
-            if qtd > 0:
-                preco = 0.0
-                if tick in data_precos.columns:
-                    try:
-                        preco = data_precos.loc[data, tick]
-                    except KeyError:
-                        preco = 0.0
-                total_dia += qtd * float(preco)
-        
+            if qtd > 0 and tick in data_precos.columns:
+                try:
+                    preco = data_precos.at[data, tick]
+                    if pd.notna(preco):
+                        total_dia += qtd * float(preco)
+                except KeyError:
+                    pass
+
         evolucao.append({
             "data": data.strftime("%Y-%m-%d"),
-            "valor": round(total_dia, 2)
+            "valor": round(total_dia, 2),
         })
     return evolucao
